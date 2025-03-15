@@ -1,69 +1,59 @@
-import time
-
 import cv2
 
 
-def image_processing():
-    img = cv2.imread('img_test.jpg')
-    #cv2.imshow('image', img)
-    w, h = img.shape[:2]
-    #(cX, cY) = (w // 2, h // 2)
-    #M = cv2.getRotationMatrix2D((cX, cY), 45, 1.0)
-    #rotated = cv2.warpAffine(img, M, (w, h))
-    #cv2.imshow('rotated', rotated)
+def process_image():
+    image_path = 'images/variant-10.jpg'
 
-    #cat = img[250:580, 20:280]
-    #cv2.imshow('image', cat)
-
-    #r = cv2.selectROI(img)
-    #image_cropped = img[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
-    #cv2.imshow('cropped', image_cropped)
-
-    cv2.line(img, (0, 0), (580, 600), (255, 0, 0), 5)
-    cv2.rectangle(img, (384, 10), (580, 128), (0, 252, 0), 3)
-    cv2.putText(img, 'Lab. No 8', (10, 500), cv2.FONT_HERSHEY_SIMPLEX, 3,
-                (0, 0, 255), 2, cv2.LINE_AA)
-    cv2.imshow('img', img)
+    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    _, thresh = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
+    
+    cv2.imshow('haha car goes vroom vroom', thresh)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return thresh
 
 
-def video_processing():
-    cap = cv2.VideoCapture(1)
-    down_points = (640, 480)
-    i = 0
+def track_marker():
+    cap = cv2.VideoCapture(0)
+    
+    # Проверка успешности открытия камеры
+    if not cap.isOpened():
+        print("Ошибка при открытии камеры")
+        return
+    
+    frame_size = (640, 480)
+    center_box_size = 150
+    frame_center_x, frame_center_y = frame_size[0] // 2, frame_size[1] // 2
+
     while True:
         ret, frame = cap.read()
         if not ret:
+            print("Не удалось захватить кадр с камеры")
             break
 
-        frame = cv2.resize(frame, down_points, interpolation=cv2.INTER_LINEAR)
+        frame = cv2.resize(frame, frame_size, interpolation=cv2.INTER_LINEAR)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (21, 21), 0)
-        ret, thresh = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY_INV)
+        _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
 
-        contours, hierarchy = cv2.findContours(thresh,
-                            cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        if len(contours) > 0:
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
             c = max(contours, key=cv2.contourArea)
             x, y, w, h = cv2.boundingRect(c)
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            if i % 5 == 0:
-                a = x + (w // 2)
-                b = y + (h // 2)
-                print(a, b)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            
+            center_x, center_y = x + w // 2, y + h // 2
+            if abs(center_x - frame_center_x) < center_box_size // 2 and abs(center_y - frame_center_y) < center_box_size // 2:
+                frame = cv2.flip(frame, 1)
 
-        cv2.imshow('frame', frame)
+        cv2.imshow('vidosik', frame)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        time.sleep(0.1)
-        i += 1
-
     cap.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    #image_processing()
-    video_processing()
-
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    process_image()
+    track_marker()
