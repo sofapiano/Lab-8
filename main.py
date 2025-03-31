@@ -35,6 +35,10 @@ def track_marker():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
 
+        top_left = (frame_center_x - center_box_size // 2, frame_center_y - center_box_size // 2)
+        bottom_right = (frame_center_x + center_box_size // 2, frame_center_y + center_box_size // 2)
+        cv2.rectangle(frame, top_left, bottom_right, (0, 0, 255), 2)
+
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
             c = max(contours, key=cv2.contourArea)
